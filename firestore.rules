@@ -1,0 +1,186 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function isBootstrapAdmin() {
+      return isAuthenticated() &&
+        request.auth.token.email == "gustavobarakat1303@gmail.com";
+    }
+
+    function hasPhoneAuth() {
+      return isAuthenticated() && request.auth.token.phone_number != null;
+    }
+
+    function currentPhoneId() {
+      return request.auth.token.phone_number;
+    }
+
+    function phoneUserExists() {
+      return hasPhoneAuth() &&
+        exists(/databases/$(database)/documents/users/$(currentPhoneId()));
+    }
+
+    function phoneUserData() {
+      return get(/databases/$(database)/documents/users/$(currentPhoneId())).data;
+    }
+
+    function currentUserExists() {
+      return isAuthenticated() &&
+        exists(/databases/$(database)/documents/users/$(request.auth.uid));
+    }
+
+    function currentUserData() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
+    }
+
+    function isAdmin() {
+      return isAuthenticated() &&
+        (isBootstrapAdmin() ||
+         (phoneUserExists() &&
+          (phoneUserData().get('ativo', false) == true || phoneUserData().get('active', false) == true) &&
+          (phoneUserData().get('role', '').lower() in ['admin', 'gerente', 'gestor'])) ||
+         (currentUserExists() &&
+          (currentUserData().get('ativo', false) == true || currentUserData().get('active', false) == true) &&
+          (currentUserData().get('role', '').lower() in ['admin', 'gerente', 'gestor'])));
+    }
+
+    function isActiveUser() {
+      return isAuthenticated() &&
+        (isBootstrapAdmin() ||
+         (phoneUserExists() &&
+          (phoneUserData().get('ativo', false) == true || phoneUserData().get('active', false) == true)) ||
+         (currentUserExists() &&
+          (currentUserData().get('ativo', false) == true || currentUserData().get('active', false) == true)));
+    }
+
+    function isSelf(documentId) {
+      return isAuthenticated() && request.auth.uid == documentId;
+    }
+
+    function isSelfPhone(documentId) {
+      return hasPhoneAuth() && currentPhoneId() == documentId;
+    }
+
+    function isValidBootstrapCreate(userId) {
+      return isSelf(userId) &&
+        !exists(/databases/$(database)/documents/users/$(userId)) &&
+        request.resource.data.uid == request.auth.uid &&
+        request.resource.data.email.lower() == request.auth.token.email.lower() &&
+        (request.resource.data.ativo == true || request.resource.data.active == true) &&
+        request.resource.data.role.lower() == 'admin' &&
+        isBootstrapAdmin();
+    }
+
+    function isValidPendingPhoneCreate(userId) {
+      return hasPhoneAuth() &&
+        userId == currentPhoneId() &&
+        !exists(/databases/$(database)/documents/users/$(userId)) &&
+        (request.resource.data.uid == currentPhoneId() || request.resource.data.id == currentPhoneId()) &&
+        request.resource.data.telefone == currentPhoneId() &&
+        request.resource.data.authUid == request.auth.uid &&
+        request.resource.data.role.lower() == 'viewer' &&
+        (request.resource.data.ativo == false || request.resource.data.active == false);
+    }
+
+    function isValidPendingEmailCreate(userId) {
+      return isSelf(userId) &&
+        !exists(/databases/$(database)/documents/users/$(userId)) &&
+        (request.resource.data.uid == request.auth.uid || request.resource.data.id == request.auth.uid) &&
+        request.resource.data.authUid == request.auth.uid &&
+        request.resource.data.email.lower() == request.auth.token.email.lower() &&
+        request.resource.data.role.lower() == 'viewer' &&
+        (request.resource.data.ativo == false || request.resource.data.active == false);
+    }
+
+    function isValidPhoneLinkUpdate(userId) {
+      return hasPhoneAuth() &&
+        userId == currentPhoneId() &&
+        (request.resource.data.uid == resource.data.uid || request.resource.data.id == resource.data.id) &&
+        request.resource.data.unitId == resource.data.unitId &&
+        request.resource.data.role == resource.data.role &&
+        (request.resource.data.ativo == resource.data.ativo || request.resource.data.active == resource.data.active) &&
+        request.resource.data.createdAt == resource.data.createdAt &&
+        request.resource.data.telefone == currentPhoneId() &&
+        request.resource.data.authUid == request.auth.uid;
+    }
+
+    function isValidEmailLinkUpdate(userId) {
+      return isSelf(userId) &&
+        (request.resource.data.uid == resource.data.uid || request.resource.data.id == resource.data.id) &&
+        request.resource.data.unitId == resource.data.unitId &&
+        request.resource.data.role == resource.data.role &&
+        (request.resource.data.ativo == resource.data.ativo || request.resource.data.active == resource.data.active) &&
+        request.resource.data.createdAt == resource.data.createdAt &&
+        request.resource.data.authUid == request.auth.uid &&
+        request.resource.data.email.lower() == request.auth.token.email.lower();
+    }
+
+    match /access_requests/{requestId} {
+      allow read, write: if isAdmin();
+      allow create: if isAuthenticated() && (request.auth.uid == requestId || (hasPhoneAuth() && currentPhoneId() == requestId));
+    }
+
+    match /users/{userId} {
+      allow read: if isAdmin() || isSelf(userId) || isSelfPhone(userId);
+      allow create: if isAdmin() ||
+        isValidBootstrapCreate(userId) ||
+        isValidPendingPhoneCreate(userId) ||
+        isValidPendingEmailCreate(userId);
+      allow update: if isAdmin() || isValidPhoneLinkUpdate(userId) || isValidEmailLinkUpdate(userId);
+      allow delete: if isAdmin();
+    }
+
+    match /units/{unitId} {
+      allow read: if isActiveUser();
+      allow write: if isAdmin();
+    }
+
+    match /competencias/{compId} {
+      allow read: if isActiveUser();
+      allow write: if isAdmin();
+    }
+
+    match /configuracoes/{configId} {
+      allow read: if isActiveUser();
+      allow write: if isAdmin();
+    }
+
+    match /cargos/{cargoId} {
+      allow read: if isActiveUser();
+      allow write: if isAdmin();
+    }
+
+    match /colaboradores/{colaboradorId} {
+      allow read: if isActiveUser();
+      allow write: if isAdmin();
+    }
+
+    match /arrecadacoes/{arrecadacaoId} {
+      allow read: if isActiveUser();
+      allow write: if isAdmin();
+    }
+
+    match /presencas/{presencaId} {
+      allow read: if isActiveUser();
+      allow write: if isAdmin();
+    }
+
+    match /calculos/{calculoId} {
+      allow read: if isActiveUser();
+      allow write: if isAdmin();
+    }
+
+    match /auditoria/{logId} {
+      allow read: if isAdmin();
+      allow create: if isAdmin() || isActiveUser();
+    }
+
+    match /confirmacoes_faltas/{confirmId} {
+      allow read, create: if isActiveUser();
+    }
+  }
+}

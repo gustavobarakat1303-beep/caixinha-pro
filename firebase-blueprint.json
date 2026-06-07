@@ -1,0 +1,176 @@
+{
+  "entities": {
+    "Unit": {
+      "title": "Unit",
+      "description": "A restaurant unit",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string" }
+      },
+      "required": ["name"]
+    },
+    "Competencia": {
+      "title": "Competencia",
+      "description": "Monthly period for tips",
+      "type": "object",
+      "properties": {
+        "unitId": { "type": "string" },
+        "mes": { "type": "number" },
+        "ano": { "type": "number" },
+        "label": { "type": "string" },
+        "status": { "type": "string", "enum": ["ABERTO", "FECHADO"] },
+        "dataFechamento": { "type": "string" },
+        "fechadoPor": { "type": "string" }
+      },
+      "required": ["unitId", "mes", "ano", "label", "status"]
+    },
+    "Configuracao": {
+      "title": "Configuracao",
+      "description": "Rules for a competence",
+      "type": "object",
+      "properties": {
+        "unitId": { "type": "string" },
+        "competenciaId": { "type": "string" },
+        "percentualGorjeta": { "type": "number" },
+        "retencaoEncargos": { "type": "number" },
+        "percentualPoolCozinha": { "type": "number" },
+        "percentualPoolSalao": { "type": "number" },
+        "ativo": { "type": "boolean" }
+      },
+      "required": ["unitId", "competenciaId", "percentualGorjeta", "retencaoEncargos"]
+    },
+    "Colaborador": {
+      "title": "Colaborador",
+      "description": "Employee details",
+      "type": "object",
+      "properties": {
+        "unitId": { "type": "string" },
+        "nome": { "type": "string" },
+        "cargoId": { "type": "string" },
+        "setor": { "type": "string" },
+        "status": { "type": "string", "enum": ["ATIVO", "INATIVO"] },
+        "pontosBase": { "type": "number" },
+        "dataAdmissao": { "type": "string" },
+        "dataDesligamento": { "type": "string" },
+        "nomeMae": { "type": "string" },
+        "endereco": { "type": "string" },
+        "bairro": { "type": "string" },
+        "cidade": { "type": "string" },
+        "observacoes": { "type": "string" }
+      },
+      "required": ["unitId", "nome", "cargoId", "status", "pontosBase", "dataAdmissao"]
+    },
+    "PresencaDiaria": {
+      "title": "PresencaDiaria",
+      "description": "Daily attendance status",
+      "type": "object",
+      "properties": {
+        "unitId": { "type": "string" },
+        "competenciaId": { "type": "string" },
+        "colaboradorId": { "type": "string" },
+        "data": { "type": "string" },
+        "status": { "type": "string", "enum": ["PRESENTE", "FALTA", "FOLGA", "FERIAS", "AFASTADO", "ADMISSAO", "DESLIGAMENTO"] },
+        "pontosDoDia": { "type": "number" }
+      },
+      "required": ["unitId", "competenciaId", "colaboradorId", "data", "status", "pontosDoDia"]
+    },
+    "ArrecadacaoDiaria": {
+      "title": "ArrecadacaoDiaria",
+      "description": "Daily tip collection",
+      "type": "object",
+      "properties": {
+        "unitId": { "type": "string" },
+        "competenciaId": { "type": "string" },
+        "data": { "type": "string" },
+        "valorBruto": { "type": "number" },
+        "valorLiquido": { "type": "number" }
+      },
+      "required": ["unitId", "competenciaId", "data", "valorBruto", "valorLiquido"]
+    },
+    "CalculoMensal": {
+      "title": "CalculoMensal",
+      "description": "Final monthly distribution",
+      "type": "object",
+      "properties": {
+        "unitId": { "type": "string" },
+        "competenciaId": { "type": "string" },
+        "colaboradorId": { "type": "string" },
+        "totalPontos": { "type": "number" },
+        "valorBrutoCalculado": { "type": "number" },
+        "valorFinalCentavos": { "type": "number" },
+        "valorFinal": { "type": "number" }
+      },
+      "required": ["unitId", "competenciaId", "colaboradorId", "totalPontos", "valorFinal"]
+    },
+    "Auditoria": {
+      "title": "Auditoria",
+      "description": "Audit trail",
+      "type": "object",
+      "properties": {
+        "modulo": { "type": "string" },
+        "entidade": { "type": "string" },
+        "entidadeId": { "type": "string" },
+        "acao": { "type": "string" },
+        "usuario": { "type": "string" },
+        "timestamp": { "type": "string" }
+      },
+      "required": ["modulo", "entidade", "acao", "usuario", "timestamp"]
+    },
+    "User": {
+      "title": "User",
+      "description": "System user profile",
+      "type": "object",
+      "properties": {
+        "email": { "type": "string" },
+        "name": { "type": "string" },
+        "role": { "type": "string" },
+        "active": { "type": "boolean" },
+        "unitId": { "type": "string" },
+        "createdAt": { "type": "string" },
+        "updatedAt": { "type": "string" }
+      },
+      "required": ["email", "name", "role", "active"]
+    },
+    "AccessRequest": {
+      "title": "AccessRequest",
+      "description": "Access request from new users",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string" },
+        "email": { "type": "string" },
+        "name": { "type": "string" },
+        "status": { "type": "string" },
+        "requestedAt": { "type": "string" },
+        "updatedAt": { "type": "string" }
+      },
+      "required": ["uid", "email", "name", "status"]
+    },
+    "ConfirmacaoFaltas": {
+      "title": "ConfirmacaoFaltas",
+      "description": "Daily confirmation that yesterday's absences were launched",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "userName": { "type": "string" },
+        "date": { "type": "string" },
+        "timestamp": { "type": "string" },
+        "unitId": { "type": "string" }
+      },
+      "required": ["userId", "userName", "date", "timestamp"]
+    }
+  },
+  "firestore": {
+    "/units/{unitId}": { "schema": "Unit", "description": "Restaurant units" },
+    "/users/{userId}": { "schema": "User", "description": "User profiles" },
+    "/access_requests/{requestId}": { "schema": "AccessRequest", "description": "Access requests" },
+    "/competencias/{competenciaId}": { "schema": "Competencia", "description": "Monthly periods" },
+    "/configuracoes/{configuracaoId}": { "schema": "Configuracao", "description": "Rules per competence" },
+    "/colaboradores/{colaboradorId}": { "schema": "Colaborador", "description": "Employees" },
+    "/presencas/{presencaId}": { "schema": "PresencaDiaria", "description": "Daily attendance" },
+    "/arrecadacoes/{arrecadacaoId}": { "schema": "ArrecadacaoDiaria", "description": "Daily tips" },
+    "/calculos/{calculoId}": { "schema": "CalculoMensal", "description": "Monthly results" },
+    "/auditoria/{auditoriaId}": { "schema": "Auditoria", "description": "Audit logs" },
+    "/cargos/{cargoId}": { "schema": "object", "description": "Job roles" },
+    "/confirmacoes_faltas/{id}": { "schema": "ConfirmacaoFaltas", "description": "Daily absence launch confirmations" }
+  }
+}
